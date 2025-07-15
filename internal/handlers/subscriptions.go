@@ -51,3 +51,13 @@ func UpdateSubscription(c *gin.Context) {
 	c.JSON(http.StatusOK, sub)
 
 }
+
+func DeleteSubscription(c *gin.Context) {
+	id := c.Param("id")
+	if rows := db.DB.Delete(models.Subscription{}, id).RowsAffected; rows == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
