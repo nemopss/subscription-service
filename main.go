@@ -17,6 +17,7 @@ func main() {
 	r.GET("/subscriptions/:id", handlers.GetSubscription)
 	r.PUT("/subscriptions/:id", handlers.UpdateSubscription)
 	r.DELETE("/subscriptions/:id", handlers.DeleteSubscription)
+	r.GET("/subscriptions", handlers.ListSubscriptions)
 
 	r.Run()
 }

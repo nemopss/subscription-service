@@ -61,3 +61,19 @@ func DeleteSubscription(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+func ListSubscriptions(c *gin.Context) {
+	var subs []models.Subscription
+	result := db.DB.Find(&subs)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+	if result.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscriptions not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, subs)
+}
