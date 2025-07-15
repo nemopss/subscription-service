@@ -32,3 +32,22 @@ func GetSubscription(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, sub)
 }
+
+func UpdateSubscription(c *gin.Context) {
+	id := c.Param("id")
+	var sub models.Subscription
+	if err := db.DB.First(&sub, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&sub); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db.DB.Save(&sub)
+
+	c.JSON(http.StatusOK, sub)
+
+}
