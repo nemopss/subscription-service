@@ -14,6 +14,7 @@ func main() {
 	}
 
 	r.POST("/subscriptions", handlers.CreateSubscription)
+	r.GET("/subscriptions/:id", handlers.GetSubscription)
 
 	r.Run()
 }
