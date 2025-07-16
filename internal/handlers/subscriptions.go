@@ -101,18 +101,20 @@ func GetTotalCostByPeriod(c *gin.Context) {
 		return
 	}
 
-	startDate, err := time.Parse(time.RFC3339, startDateStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_date"})
-		return
-	}
-
 	dbQuery := db.DB.Model(&models.Subscription{}).
-		Where("user_id = ?", userID).
-		Where("start_date >= ?", startDate)
+		Where("user_id = ?", userID)
 
 	if serviceName != "" {
 		dbQuery = dbQuery.Where("service_name = ?", serviceName)
+	}
+
+	if startDateStr != "" {
+		startDate, err := time.Parse(time.RFC3339, startDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_date"})
+			return
+		}
+		dbQuery = dbQuery.Where("start_date >= ?", startDate)
 	}
 
 	if endDateStr != "" {
