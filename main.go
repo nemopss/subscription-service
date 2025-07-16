@@ -18,6 +18,7 @@ func main() {
 	r.PUT("/subscriptions/:id", handlers.UpdateSubscription)
 	r.DELETE("/subscriptions/:id", handlers.DeleteSubscription)
 	r.GET("/subscriptions", handlers.ListSubscriptions)
+	r.GET("/subscriptions/total", handlers.GetTotalCostByPeriod)
 
 	r.Run()
 }

@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/nemopss/subscription-service/internal/db"
 	"github.com/nemopss/subscription-service/internal/models"
 )
@@ -20,11 +23,16 @@ func CreateSubscription(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, sub)
+	c.JSON(http.StatusCreated, sub)
 }
 
 func GetSubscription(c *gin.Context) {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid subscription id"})
+		return
+	}
+
 	var sub models.Subscription
 	if err := db.DB.First(&sub, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
@@ -34,7 +42,11 @@ func GetSubscription(c *gin.Context) {
 }
 
 func UpdateSubscription(c *gin.Context) {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid subscription id"})
+		return
+	}
 	var sub models.Subscription
 	if err := db.DB.First(&sub, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
@@ -53,7 +65,11 @@ func UpdateSubscription(c *gin.Context) {
 }
 
 func DeleteSubscription(c *gin.Context) {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid subscription id"})
+		return
+	}
 	if rows := db.DB.Delete(models.Subscription{}, id).RowsAffected; rows == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Subscription not found"})
 		return
@@ -64,16 +80,56 @@ func DeleteSubscription(c *gin.Context) {
 
 func ListSubscriptions(c *gin.Context) {
 	var subs []models.Subscription
-	result := db.DB.Find(&subs)
 
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
-		return
-	}
-	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Subscriptions not found"})
+	if err := db.DB.Find(&subs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, subs)
+}
+
+func GetTotalCostByPeriod(c *gin.Context) {
+	userIDStr := c.Query("user_id")
+	serviceName := c.Query("service_name")
+	startDateStr := c.Query("start_date")
+	endDateStr := c.Query("end_date")
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	startDate, err := time.Parse(time.RFC3339, startDateStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_date"})
+		return
+	}
+
+	dbQuery := db.DB.Model(&models.Subscription{}).
+		Where("user_id = ?", userID).
+		Where("start_date >= ?", startDate)
+
+	if serviceName != "" {
+		dbQuery = dbQuery.Where("service_name = ?", serviceName)
+	}
+
+	if endDateStr != "" {
+		endDate, err := time.Parse(time.RFC3339, endDateStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_date"})
+			return
+		}
+		dbQuery = dbQuery.Where("end_date <= ? OR end_date IS NULL", endDate)
+	}
+
+	var sum int
+	err = dbQuery.Select("COALESCE(SUM(price), 0)").Scan(&sum).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"total": sum})
 }
