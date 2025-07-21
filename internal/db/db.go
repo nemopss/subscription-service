@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/nemopss/subscription-service/internal/models"
+	"github.com/nemopss/subscription-service/migrations"
 	"github.com/nemopss/subscription-service/pkg/logger"
 )
 
@@ -15,14 +16,6 @@ var DB *gorm.DB
 
 func InitDB() error {
 	logger.Log.Info("Initialising database")
-	// dsn := fmt.Sprintf(
-	// 	"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-	// 	os.Getenv("DB_HOST"),
-	// 	os.Getenv("DB_PORT"),
-	// 	os.Getenv("DB_USER"),
-	// 	os.Getenv("DB_NAME"),
-	// 	os.Getenv("DB_PASSWORD"),
-	// )
 	dsn := os.Getenv("POSTGRES_URL")
 	if dsn == "" {
 		return fmt.Errorf("переменная окружения POSTGRES_URL не установлена")
@@ -34,7 +27,18 @@ func InitDB() error {
 	}
 
 	DB = db
-	DB.AutoMigrate(&models.Subscription{})
+
+	m := gormigrate.New(
+		DB,
+		gormigrate.DefaultOptions,
+		[]*gormigrate.Migration{migrations.Migrate20250721(DB)},
+	)
+
+	if err := m.Migrate(); err != nil {
+		logger.Log.WithError(err).Error("Migration failed")
+		return err
+	}
+
 	logger.Log.Info("Database initialised")
 	return nil
 }
