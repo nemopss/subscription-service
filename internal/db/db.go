@@ -15,15 +15,18 @@ var DB *gorm.DB
 
 func InitDB() error {
 	logger.Log.Info("Initialising database")
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PASSWORD"),
-	)
-
+	// dsn := fmt.Sprintf(
+	// 	"host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
+	// 	os.Getenv("DB_HOST"),
+	// 	os.Getenv("DB_PORT"),
+	// 	os.Getenv("DB_USER"),
+	// 	os.Getenv("DB_NAME"),
+	// 	os.Getenv("DB_PASSWORD"),
+	// )
+	dsn := os.Getenv("POSTGRES_URL")
+	if dsn == "" {
+		return fmt.Errorf("переменная окружения POSTGRES_URL не установлена")
+	}
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		logger.Log.WithError(err).Error("Error opening database")
